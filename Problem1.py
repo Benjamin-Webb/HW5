@@ -36,3 +36,15 @@ def meritfun(x, mu, w, k):
 	g = constraints(x)
 
 	return f + np.sum(w[:, k]*np.max(0.0, g))
+
+if __name__ == "__main__":
+	# main script
+
+	# Initial solution guess
+	x = np.zeros((2, 1000), dtype=np.single)
+	x[:, :1] = np.array([[1.0], [1.0]])
+
+	# Determine if any of the inequality constraints are active
+	g = np.zeros((2, 1000), np.single)
+	g[:, :1] = constraints(x[:, 0])
+	mu = np.zeros((2, 1000), np.single)
