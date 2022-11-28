@@ -65,6 +65,32 @@ def QP(x, mu, W, k):
 	gbar = constraints(x, k)
 	gbar = gbar*np.abs(np.sign(mu))    # If inactive, gbar = 0
 
+	# Jacobian of objective function
+	fx = np.array([2*x[0], 2*x[1] - 6.0], dtype=np.single)
+
+	# Initial step size
+	sk = np.zeros((2, 1), dtype=np.single)
+
+	while mu.max() <= 0.0 or np.amax(A*sk + gbar) > 0.0:
+		C = np.vstack((np.hstack(W, A.T), np.hstack(A, np.zeros((2, 2), dtype=np.single))))
+		D = np.vstack((-fx, -gbar))
+
+		# Least squares solution
+		E = np.linalg.lstsq(C, D, rcond=None)
+
+		# Update sk and mu
+		sk = E[:2]
+		mu = E[2:4]
+
+		# Update active constraints
+		if np.min(mu) <= 0.0:
+			idx = np.argmin(mu)
+			sign = np.ones(2, 1)
+			sign[idx] = 0.0
+			A = np.array([[-2.0, 2.0 * x[1]],
+			              [5.0, 2.0 * x[1] - 2.0]], dtype=np.single)*sign
+		elif np.amax(A*sk + gbar) > 0.0:
+
 
 if __name__ == "__main__":
 	# main script
@@ -84,3 +110,7 @@ if __name__ == "__main__":
 	# Calculate gradient of Lagrangian at x0
 	gradL = np.zeros((2, 1000), dtype=np.single)
 	gradL = gradLagrangian(x, mu, k)
+
+	# Initialize W
+	W = np.zeros((2, 2, 1000), dtype=np.single)
+	W[:, :, :1] = np.eye(N=2, dtype=np.single)
