@@ -53,55 +53,59 @@ def QP(x, mu, W):
 	# Solves QP subproblem w/ active set
 	# x: 2x1 vector
 	# mu: 2x1 vector
-	# k: iteration number, int
 
 	# Formulate intial set of active constraints
 	A = np.array([[-2.0, 2.0*x[1]],
 	              [5.0, 2.0*x[1] - 2.0]], dtype=np.single)
-	if np.sign(mu[0]) < 0.0:
-		A[0] = 0.0
-	if np.sign(mu[1]) < 0.0:
-		A[1] = 0.0
+	if np.sign(mu[0]) <= 0.0:
+		A[0, 0] = 0.0
+		A[0, 1] = 0.0
+	if np.sign(mu[1]) <= 0.0:
+		A[1, 0] = 0.0
+		A[1, 1] = 0.0
 
 	gbar = constraints(x)
-	if np.sign(mu[0]) < 0.0:
+	if np.sign(mu[0]) <= 0.0:
 		gbar[0] = 0.0
-	if np.sign(mu[1]) < 0.0:
+	if np.sign(mu[1]) <= 0.0:
 		gbar[1] = 0.0
 
 	# Jacobian of objective function
-	fx = np.array([2*x[0], 2*x[1] - 6.0], dtype=np.single)
+	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
 
 	# Initial step size
 	sk = np.zeros((2, 1), dtype=np.single)
 
-	while mu.max() <= 0.0 or np.amax(A*sk + gbar) > 0.0:
-		C = np.vstack((np.hstack(W, A.T), np.hstack(A, np.zeros((2, 2), dtype=np.single))))
+	while mu.max() <= 0.0 and np.max(A@sk + gbar) > 0.0:
+		C = np.vstack((np.hstack((W, A.T)), np.hstack((A, np.zeros((2, 2), dtype=np.single)))))
 		D = np.vstack((-fx, -gbar))
 
 		# Least squares solution
 		E = np.linalg.lstsq(C, D, rcond=None)
 
 		# Update sk and mu
-		sk = E[:2]
-		mu = E[2:4]
+		sol = E[0]
+		sk = sol[:2]
+		mu = sol[2:4]
 		gbar = constraints(x)
 
 		# Update active constraints
 		if np.min(mu) <= 0.0:
 			idx = np.argmin(mu)
 			if idx == 0:
-				A[0] = 0.0
+				A[0, 0] = 0.0
+				A[0, 1] = 0.0
 				gbar[0] = 0.0
 			elif idx == 1:
-				A[1] = 0.0
+				A[1, 0] = 0.0
+				A[1, 1] = 0.0
 				gbar[1] = 0.0
-		elif np.amax(A*sk + gbar) > 0.0:
-			idx = np.argmax(A*sk + gbar)
+		elif np.max(A@sk + gbar) > 0.0:
+			idx = np.argmax(A@sk + gbar)
 			if idx == 0:
-				A[0] = np.array([-2.0, 2.0*x[1]])
+				A[0, :2] = np.array([-2.0, 2.0*x[1]])
 			elif idx == 1:
-				A[1] = np.array([5.0, 2.0*x[1] - 2.0])
+				A[1, :2] = np.array([5.0, 2.0*x[1] - 2.0])
 
 	return sk, mu
 
@@ -127,7 +131,8 @@ if __name__ == "__main__":
 
 	# Initialize W
 	W = np.zeros((2, 2, 1000), dtype=np.single)
-	W[:, :, :1] = np.eye(N=2, dtype=np.single)
+	W[0, 0, 0] = 1.0
+	W[1, 1, 0] = 1.0
 
 	# Test QP
 	[sk[:, k], mu[:, k]] = QP(x[:, k], mu[:, k], W[:, :, k])
