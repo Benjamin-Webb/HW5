@@ -51,6 +51,21 @@ def meritfun(x, mu, w, k):
 
 	return f + np.sum(w[:, k]*np.max(0.0, g))
 
+def QP(x, mu, W, k):
+	# Solves QP subproblem w/ active set
+	# x: 2x1 vector
+	# mu: 2x1 vector
+	# k: iteration number, int
+
+	# Formulate intial set of active constraints
+	A = np.array([[-2.0, 2.0*x[1]],
+	              [5.0, 2.0*x[1] - 2.0]], dtype=np.single)
+	A = A*np.abs(np.sign(mu))   # If inactive, np.sign = 0... Giving A = 0 for constraint
+
+	gbar = constraints(x, k)
+	gbar = gbar*np.abs(np.sign(mu))    # If inactive, gbar = 0
+
+
 if __name__ == "__main__":
 	# main script
 
