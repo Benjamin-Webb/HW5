@@ -4,21 +4,35 @@
 
 import numpy as np
 
-def objfun(x):
+def objfun(x, k):
 	# objective function
 	# x: 2x1 vector
+	# k: iteration number, int
 
-	return x[0]**2 + (x[1] - 3.0)**2
+	return x[0, k]**2 + (x[1, k] - 3.0)**2
 
-def constraints(x):
+def constraints(x, k):
 	# vector of inequality constraints
 	# x: 2x1 vector
+	# k: iteration number, int
 
 	g = np.zeros((2, 1), dtype=np.single)
-	g[0] = x[1]**2 - 2*x[0]
-	g[1] = (x[1] - 1.0)**2 + 5.0*x[0] - 15.0
+	g[0] = x[1, k]**2 - 2*x[0, k]
+	g[1] = (x[1, k] - 1.0)**2 + 5.0*x[0, k] - 15.0
 
 	return g
+
+def gradLagrangian(x, mu, k):
+	# Calculates gradient of the Lagrangian
+	# x: 2x1 vector
+	# g: 2x1 vector
+	# k: interation number, int
+
+	gradL = np.zeros((2, 1), dtype=np.single)
+	gradL[0] = 2*x[0, k] - 2*mu[0, k] + 5*mu[1, k]
+	gradL[1] = 2*x[1, k] - 6.0 + 2*mu[0, k]*x[1, k] + 2*mu[1, k]*x[1, k] - 2*mu[1, k]
+
+	return gradL
 
 def meritfun(x, mu, w, k):
 	# merit function used in linesearch
@@ -40,11 +54,18 @@ def meritfun(x, mu, w, k):
 if __name__ == "__main__":
 	# main script
 
+	# Iteration counter
+	k = np.uint16(0)
+
 	# Initial solution guess
 	x = np.zeros((2, 1000), dtype=np.single)
 	x[:, :1] = np.array([[1.0], [1.0]])
 
 	# Determine if any of the inequality constraints are active
 	g = np.zeros((2, 1000), np.single)
-	g[:, :1] = constraints(x[:, 0])
+	g[:, :1] = constraints(x, k)
 	mu = np.zeros((2, 1000), np.single)
+
+	# Calculate gradient of Lagrangian at x0
+	gradL = np.zeros((2, 1000), dtype=np.single)
+	gradL = gradLagrangian(x, mu, k)
