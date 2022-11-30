@@ -20,6 +20,18 @@ def constraints(x):
 
 	return g
 
+def gradConstraints(x):
+	# matrix containing jacobian of the inequality constraints w.r.t. x
+	# x: 2x1 vector
+
+	dg = np.zeros((2, 2), dtype=np.single)
+	dg[0, 0] = - 2.0
+	dg[0, 1] = 2*x[1]
+	dg[1, 0] = 5.0
+	dg[1, 1] = 2*x[1] - 2.0
+
+	return dg
+
 def gradLagrangian(x, mu):
 	# Calculates gradient of the Lagrangian
 	# x: 2x1 vector
@@ -55,8 +67,7 @@ def QP(x, mu, W):
 	# mu: 2x1 vector
 
 	# Formulate intial set of active constraints
-	A = np.array([[-2.0, 2.0*x[1]],
-	              [5.0, 2.0*x[1] - 2.0]], dtype=np.single)
+	A = gradConstraints(x)
 	if np.sign(mu[0]) <= 0.0:
 		A[0, 0] = 0.0
 		A[0, 1] = 0.0
@@ -87,9 +98,19 @@ def QP(x, mu, W):
 		sol = E[0]
 		sk = sol[:2]
 		mu = sol[2:4]
-		gbar = constraints(x)
+		gbar = constraints(x+sk)
 
 		# Update active constraints
+		if mu[0] <= 0.0:
+			if mu[0] < mu[1]:
+				A[0, 0] = 0.0
+				A[0, 1] = 0.0
+				gbar[0] = 0.0
+		if mu[1] <= 0.0:
+			if mu[1] < mu[0]:
+				A[1, 0] = 0.0
+				A[1, 1] = 0.0
+				gbar[1] = 0.0
 		if np.min(mu) <= 0.0:
 			idx = np.argmin(mu)
 			if idx == 0:
