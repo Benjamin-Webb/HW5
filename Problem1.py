@@ -186,28 +186,31 @@ def linesearch(x, sk, mu, ww, k):
 
 def BFGS(W, alphask, x, mu, k):
 	# Function performs BFGS for given optimization problem
-	# W: 2x2xn array containing previous iteration Hessian approximations
+	# W: 2x2 array containing previous iteration Hessian approximation
 	# alphask: 2x1 vector containing alphak*sk
 	# x: 2xn array containing previous iteration solutions
 	# mu: 2x1 vector containing new guesses for Lagrange multipliers
 	# k: integer for current iteration
 
 	# Determine theta at current iteration
-	dLk1 = gradLagrangian(x[:, k] @ alphask, mu)
+	dLk1 = gradLagrangian(x[:, k+1], mu)
 	dLk0 = gradLagrangian(x[:, k], mu)
 
-	if alphask.T @ (dLk1 - dLk0) >= 0.2:
+	if alphask.reshape((2, 1)).T @ (dLk1 - dLk0) >= 0.2:
 		theta = np.single(1)
 	else:
-		theta = (0.8 * alphask.T @ W[:, :, k] @ alphask) / ((alphask.T @ W[:, :, k] @ alphask) -
-		                                                    (alphask.T @ (dLk1 - dLk0)))
+		theta = (0.8 * alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))) /\
+		        ((alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))) -
+		         (alphask.reshape((2, 1)).T @ (dLk1 - dLk0)))
 
 	# Calculate y for BFGS
-	y = theta*(dLk1 - dLk0) + (1 - theta)*W[:, :, k]@alphask
+	y = theta*(dLk1 - dLk0) + (1 - theta)*W@alphask.reshape((2, 1))
 
 	# Update Hessian approximation
-	W[:, :, k+1] = W[:, :, k] + (y@y.T) - ((W[:, :, k] @ alphask @ alphask.T @ W[:, :, k]) /
-	                                       (alphask.T @ W[:, :, k] @ alphask))
+	H = W + (y@y.T) - ((W @ alphask.reshape((2, 1)) @ alphask.reshape((2, 1)).T @ W) /
+	                   (alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))))
+
+	return H
 
 if __name__ == "__main__":
 	# main script
@@ -246,3 +249,6 @@ if __name__ == "__main__":
 
 	# Update solution
 	x[:, 1:2] = x[:, :1] + alpha[0]*sk[:, :1]
+
+	# Update Hessian approximation
+	W[:, :, k+1] = BFGS(W[:, :, k], alpha[k]*sk[:, k], x, mu[:, k], k)
