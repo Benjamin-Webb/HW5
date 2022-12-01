@@ -25,7 +25,7 @@ def gradConstraints(x):
 	# x: 2x1 vector
 
 	dg = np.zeros((2, 2), dtype=np.single)
-	dg[0, 0] = - 2.0
+	dg[0, 0] = -2.0
 	dg[0, 1] = 2*x[1]
 	dg[1, 0] = 5.0
 	dg[1, 1] = 2*x[1] - 2.0
@@ -68,26 +68,29 @@ def QP(x, mu, W):
 
 	# Formulate intial set of active constraints
 	A = gradConstraints(x)
-	if np.sign(mu[0]) <= 0.0:
-		A[0, 0] = 0.0
-		A[0, 1] = 0.0
-	if np.sign(mu[1]) <= 0.0:
-		A[1, 0] = 0.0
-		A[1, 1] = 0.0
+	# if np.sign(mu[0]) <= 0.0:
+	# 	A[0, 0] = 0.0
+	# 	A[0, 1] = 0.0
+	# if np.sign(mu[1]) <= 0.0:
+	# 	A[1, 0] = 0.0
+	# 	A[1, 1] = 0.0
 
 	gbar = constraints(x)
-	if np.sign(mu[0]) <= 0.0:
-		gbar[0] = 0.0
-	if np.sign(mu[1]) <= 0.0:
-		gbar[1] = 0.0
+	# if np.sign(mu[0]) <= 0.0:
+	# 	gbar[0] = 0.0
+	# if np.sign(mu[1]) <= 0.0:
+	# 	gbar[1] = 0.0
 
 	# Jacobian of objective function
 	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
+	# Jacobian of inequality constraints
+	dg = gradConstraints(x)
 
 	# Initial step size
 	sk = np.zeros((2, 1), dtype=np.single)
+	j = np.uint16(0)
 
-	while mu.max() <= 0.0 and np.max(A@sk + gbar) > 0.0:
+	while j < 100:
 		C = np.vstack((np.hstack((W, A.T)), np.hstack((A, np.zeros((2, 2), dtype=np.single)))))
 		D = np.vstack((-fx, -gbar))
 
@@ -98,35 +101,44 @@ def QP(x, mu, W):
 		sol = E[0]
 		sk = sol[:2]
 		mu = sol[2:4]
-		gbar = constraints(x+sk)
+		dgdx1 = dg[0, 0:2]@sk + gbar[0]
+		dgdx2 = dg[1, 0:2]@sk + gbar[1]
 
 		# Update active constraints
+		# A = gradConstraints(x)
+		# gbar = constraints(x)
 		if mu[0] <= 0.0:
-			if mu[0] < mu[1]:
+			if mu[0] <= mu[1]:
 				A[0, 0] = 0.0
 				A[0, 1] = 0.0
 				gbar[0] = 0.0
+			mu[0] = 0.0
 		if mu[1] <= 0.0:
 			if mu[1] < mu[0]:
 				A[1, 0] = 0.0
 				A[1, 1] = 0.0
 				gbar[1] = 0.0
-		if np.min(mu) <= 0.0:
-			idx = np.argmin(mu)
-			if idx == 0:
-				A[0, 0] = 0.0
-				A[0, 1] = 0.0
-				gbar[0] = 0.0
-			elif idx == 1:
-				A[1, 0] = 0.0
-				A[1, 1] = 0.0
-				gbar[1] = 0.0
-		elif np.max(A@sk + gbar) > 0.0:
-			idx = np.argmax(A@sk + gbar)
-			if idx == 0:
-				A[0, :2] = np.array([-2.0, 2.0*x[1]])
-			elif idx == 1:
-				A[1, :2] = np.array([5.0, 2.0*x[1] - 2.0])
+			mu[1] = 0.0
+		if mu[0] > 0.0 and mu[0] >= mu[1]:
+			if dgdx1.max() > 0.0:
+				A[0, 0] = -2.0
+				A[0, 1] = 2*x[1]
+				gbar[0] = x[1]**2 - 2*x[0]
+		if mu[1] > 0.0 and mu[1] > mu[0]:
+			if dgdx2.max() > 0.0:
+				A[1, 0] = 5.0
+				A[1, 1] = 2*x[1] - 2.0
+				gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
+
+		# Determine if QP subproblem is solved
+		if mu[0] > 0 and mu[1] <= 0 or dgdx2.max() <= 0.0:
+			if dgdx1.max() <= 0.0:
+				break
+		if mu[1] > 0 and mu[0] <= 0 or dgdx1.max() <= 0.0:
+			if dgdx2.max() <= 0.0:
+				break
+
+		j += 1
 
 	return sk, mu
 
@@ -139,7 +151,7 @@ if __name__ == "__main__":
 	# Initial solution guess and step size
 	sk = np.zeros((2, 1000), dtype=np.single)
 	x = np.zeros((2, 1000), dtype=np.single)
-	x[:, :1] = np.array([[1.0], [1.0]])
+	x[:, :1] = np.array([[1.0], [2.0]])
 
 	# Determine if any of the inequality constraints are active
 	g = np.zeros((2, 1000), np.single)
