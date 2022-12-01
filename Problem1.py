@@ -44,22 +44,19 @@ def gradLagrangian(x, mu):
 
 	return gradL
 
-def meritfun(x, mu, w, k):
-	# merit function used in linesearch
+def meritfun(mu, w, k):
+	# weights for merit function used in linesearch
 	# x: 2x1 vector
 	# mu: 2x1 vector containing lagrange multipliers
 	# w: 2x2 matrix containing weights for merit function
 	# k: iteration number
 
 	if k == 0:
-		w[:, 1] = np.abs(mu)
+		w = np.abs(mu)
 	else:
-		w[:, 2] = np.maximum(np.abs(mu), 0.5*(w[:, 1] + np.abs(mu)))
+		w[:, 2] = np.maximum(np.abs(mu), 0.5*(w[:, 0] + np.abs(mu)))
 
-	f = objfun(x)
-	g = constraints(x)
-
-	return f + np.sum(w[:, 2]*np.max(0.0, g))
+	return w
 
 def QP(x, mu, W):
 	# Solves QP subproblem w/ active set
@@ -129,25 +126,46 @@ def QP(x, mu, W):
 				gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		# Determine if QP subproblem is solved
-		if mu[0] > 0 and mu[1] <= 0 or dgdx2.max() <= 0.0:
+		if mu[0] > 0 and mu[1] <= 0.0 or dgdx2.max() <= 0.0:
 			if dgdx1.max() <= 0.0:
+				if mu[1] < 0.0:
+					mu[1] = 0.0
 				break
 		if mu[1] > 0 and mu[0] <= 0 or dgdx1.max() <= 0.0:
 			if dgdx2.max() <= 0.0:
+				if mu[0] < 0.0:
+					mu[0] = 0.0
 				break
 
 		j += 1
 
 	return sk, mu
 
-def linesearch(sk, mu, ww, k):
+def linesearch(x, sk, mu, ww, k):
 	# Does linesearch for this SQP problem
 	# Many variables needed are calculated inside function
+	# x: 2x1 vector of current location
 	# sk: 2x1 vector of current step size
 	# mu: 2x1 vector of current guess of Lagrange multipliers
 	# ww: 2x2 matrix containing the merit function weights
 
-	test = 1
+	# Intialize linesearch parameters
+	t = np.single(1)
+	alpha = np.single(1)
+
+	# Calculate weights for merit function
+	if k == 0:
+		ww = meritfun(mu, ww, k)
+	else:
+		ww[:, k] = meritfun(mu, ww, k)
+
+	# Caclulate F(x+a*sk, mu)
+	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
+	fxs = fx.T @ np.reshape(sk, (2, 1))
+	g = constraints(x + alpha*sk)
+	Falpha = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
+
+	return g
 
 if __name__ == "__main__":
 	# main script
@@ -158,7 +176,7 @@ if __name__ == "__main__":
 	# Initial solution guess and step size
 	sk = np.zeros((2, 1000), dtype=np.single)
 	x = np.zeros((2, 1000), dtype=np.single)
-	x[:, :1] = np.array([[1.0], [2.0]])
+	x[:, :1] = np.array([[1.0], [1.0]])
 
 	# Determine if any of the inequality constraints are active
 	g = np.zeros((2, 1000), np.single)
@@ -175,10 +193,11 @@ if __name__ == "__main__":
 	W[1, 1, 0] = 1.0
 
 	# Run QP
-	[sk[:, k], mu[:, k]] = QP(x[:, k], mu[:, k], W[:, :, k])
+	[sk[:, :1], mu[:, :1]] = QP(x[:, k], mu[:, k], W[:, :, k])
 
 	# Initialize array of weights to be used in linesearch
-	ww = np.zeros((2, 1), 1000, dtype=np.single)
-	ww[0, 0] = np.abs(mu[0, 0])
-	ww[1, 0] = np.abs(mu[1, 0])
+	ww = np.zeros((2, 1000), dtype=np.single)
+
+	# Test linesearch
+	linesearch(x[:, k], sk[:, k], mu[:, k], ww[:, k], k)
 
