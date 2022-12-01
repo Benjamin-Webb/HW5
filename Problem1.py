@@ -161,11 +161,28 @@ def linesearch(x, sk, mu, ww, k):
 
 	# Caclulate F(x+a*sk, mu)
 	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
-	fxs = fx.T @ np.reshape(sk, (2, 1))
+	fxs = fx.T @ sk.reshape((2, 1))
 	g = constraints(x + alpha*sk)
-	Falpha = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
+	F = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
 
-	return g
+	# Calculate Phi(alpha)
+	g = constraints(x)
+	Fx = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
+	dg = np.array([[-2.0, 2*x[1]], [5.0, 2*x[1] - 2.0]], dtype=np.single) @ sk.reshape((2, 1))
+	dgdalpha = np.maximum(np.array([[0.0], [0.0]]), dg)
+	Phi = Fx + t*alpha*(fxs + np.sum(ww * dgdalpha))
+
+	while F > Phi:
+		alpha = alpha / 2
+
+		# Caclulate F(x+a*sk, mu)
+		g = constraints(x + alpha * sk)
+		F = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
+
+		# Calculate Phi(alpha)
+		Phi = Fx + t * alpha * (fxs + np.sum(ww * dgdalpha))
+
+	return alpha
 
 if __name__ == "__main__":
 	# main script
