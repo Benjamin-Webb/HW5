@@ -199,8 +199,15 @@ def BFGS(W, alphask, x, mu, k):
 	if alphask.T @ (dLk1 - dLk0) >= 0.2:
 		theta = np.single(1)
 	else:
-		theta = (0.8 * alphask.T@W[:, :, k]@alphask) / ((alphask.T @ W[:, :, k] @ alphask) -
-		                                                (alphask.T @ (dLk1 - dLk0)))
+		theta = (0.8 * alphask.T @ W[:, :, k] @ alphask) / ((alphask.T @ W[:, :, k] @ alphask) -
+		                                                    (alphask.T @ (dLk1 - dLk0)))
+
+	# Calculate y for BFGS
+	y = theta*(dLk1 - dLk0) + (1 - theta)*W[:, :, k]@alphask
+
+	# Update Hessian approximation
+	W[:, :, k+1] = W[:, :, k] + (y@y.T) - ((W[:, :, k] @ alphask @ alphask.T @ W[:, :, k]) /
+	                                       (alphask.T @ W[:, :, k] @ alphask))
 
 if __name__ == "__main__":
 	# main script
