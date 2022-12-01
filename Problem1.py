@@ -191,6 +191,7 @@ if __name__ == "__main__":
 	k = np.uint16(0)
 
 	# Initial solution guess and step size
+	alpha = np.zeros((1000, 1), dtype=np.single)
 	sk = np.zeros((2, 1000), dtype=np.single)
 	x = np.zeros((2, 1000), dtype=np.single)
 	x[:, :1] = np.array([[1.0], [1.0]])
@@ -216,5 +217,7 @@ if __name__ == "__main__":
 	ww = np.zeros((2, 1000), dtype=np.single)
 
 	# Test linesearch
-	linesearch(x[:, k], sk[:, k], mu[:, k], ww[:, k], k)
+	alpha[0] = linesearch(x[:, k], sk[:, k], mu[:, k], ww[:, k], k)
 
+	# Update solution
+	x[:, 1:2] = x[:, :1] + alpha[0]*sk[:, :1]
