@@ -184,6 +184,24 @@ def linesearch(x, sk, mu, ww, k):
 
 	return alpha
 
+def BFGS(W, alphask, x, mu, k):
+	# Function performs BFGS for given optimization problem
+	# W: 2x2xn array containing previous iteration Hessian approximations
+	# alphask: 2x1 vector containing alphak*sk
+	# x: 2xn array containing previous iteration solutions
+	# mu: 2x1 vector containing new guesses for Lagrange multipliers
+	# k: integer for current iteration
+
+	# Determine theta at current iteration
+	dLk1 = gradLagrangian(x[:, k] @ alphask, mu)
+	dLk0 = gradLagrangian(x[:, k], mu)
+
+	if alphask.T @ (dLk1 - dLk0) >= 0.2:
+		theta = np.single(1)
+	else:
+		theta = (0.8 * alphask.T@W[:, :, k]@alphask) / ((alphask.T @ W[:, :, k] @ alphask) -
+		                                                (alphask.T @ (dLk1 - dLk0)))
+
 if __name__ == "__main__":
 	# main script
 
