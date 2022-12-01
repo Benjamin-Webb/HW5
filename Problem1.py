@@ -48,18 +48,18 @@ def meritfun(x, mu, w, k):
 	# merit function used in linesearch
 	# x: 2x1 vector
 	# mu: 2x1 vector containing lagrange multipliers
-	# w: 2xn vector containing weights for merit function
+	# w: 2x2 matrix containing weights for merit function
 	# k: iteration number
 
 	if k == 0:
-		w[:, k] = np.zeros((2, 1), dtype=np.single)
+		w[:, 1] = np.abs(mu)
 	else:
-		w[:, k] = np.maximum(mu[:, k], 0.5*(w[:, k-1] + np.abs(mu[:, k])))
+		w[:, 2] = np.maximum(np.abs(mu), 0.5*(w[:, 1] + np.abs(mu)))
 
 	f = objfun(x)
 	g = constraints(x)
 
-	return f + np.sum(w[:, k]*np.max(0.0, g))
+	return f + np.sum(w[:, 2]*np.max(0.0, g))
 
 def QP(x, mu, W):
 	# Solves QP subproblem w/ active set
