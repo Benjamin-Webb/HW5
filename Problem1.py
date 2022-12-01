@@ -112,13 +112,11 @@ def QP(x, mu, W):
 				A[0, 0] = 0.0
 				A[0, 1] = 0.0
 				gbar[0] = 0.0
-			mu[0] = 0.0
 		if mu[1] <= 0.0:
 			if mu[1] < mu[0]:
 				A[1, 0] = 0.0
 				A[1, 1] = 0.0
 				gbar[1] = 0.0
-			mu[1] = 0.0
 		if mu[0] > 0.0 and mu[0] >= mu[1]:
 			if dgdx1.max() > 0.0:
 				A[0, 0] = -2.0
@@ -141,6 +139,15 @@ def QP(x, mu, W):
 		j += 1
 
 	return sk, mu
+
+def linesearch(sk, mu, ww, k):
+	# Does linesearch for this SQP problem
+	# Many variables needed are calculated inside function
+	# sk: 2x1 vector of current step size
+	# mu: 2x1 vector of current guess of Lagrange multipliers
+	# ww: 2x2 matrix containing the merit function weights
+
+	test = 1
 
 if __name__ == "__main__":
 	# main script
@@ -167,5 +174,11 @@ if __name__ == "__main__":
 	W[0, 0, 0] = 1.0
 	W[1, 1, 0] = 1.0
 
-	# Test QP
+	# Run QP
 	[sk[:, k], mu[:, k]] = QP(x[:, k], mu[:, k], W[:, :, k])
+
+	# Initialize array of weights to be used in linesearch
+	ww = np.zeros((2, 1), 1000, dtype=np.single)
+	ww[0, 0] = np.abs(mu[0, 0])
+	ww[1, 0] = np.abs(mu[1, 0])
+
