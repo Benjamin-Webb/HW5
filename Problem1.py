@@ -105,16 +105,14 @@ def QP(x, mu, W, k):
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
-		if mu[0] <= 0.0:
-			if mu[0] <= mu[1]:
-				A[0, 0] = 0.0
-				A[0, 1] = 0.0
-				gbar[0] = 0.0
-		if mu[1] <= 0.0:
-			if mu[1] < mu[0]:
-				A[1, 0] = 0.0
-				A[1, 1] = 0.0
-				gbar[1] = 0.0
+		if mu[0] <= 0.0 and mu[0] <= mu[1]:
+			A[0, 0] = 0.0
+			A[0, 1] = 0.0
+			gbar[0] = 0.0
+		if mu[1] <= 0.0 and mu[1] < mu[0]:
+			A[1, 0] = 0.0
+			A[1, 1] = 0.0
+			gbar[1] = 0.0
 		if dgdx1 > 0.0 and dgdx1 > dgdx2:
 			A[0, 0] = -2.0
 			A[0, 1] = 2*x[1]
@@ -259,3 +257,5 @@ if __name__ == "__main__":
 		# Update gradient of Lagrangian
 		gradL[:, k+1:k+2] = gradLagrangian(x[:, k+1:k+2], mu[:, k+1:k+2])
 		k += 1
+
+		test = np.linalg.norm(gradL[:, k])
