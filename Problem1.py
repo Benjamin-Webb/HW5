@@ -115,28 +115,28 @@ def QP(x, mu, W, k):
 				A[1, 0] = 0.0
 				A[1, 1] = 0.0
 				gbar[1] = 0.0
-		if mu[0] > 0.0 and mu[0] >= mu[1]:
-			if dgdx1 > 0.0:
-				A[0, 0] = -2.0
-				A[0, 1] = 2*x[1]
-				gbar[0] = x[1]**2 - 2*x[0]
-		if mu[1] > 0.0 and mu[1] > mu[0]:
-			if dgdx2 > 0.0:
-				A[1, 0] = 5.0
-				A[1, 1] = 2*x[1] - 2.0
-				gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
+		if dgdx1 > 0.0 and dgdx1 > dgdx2:
+			A[0, 0] = -2.0
+			A[0, 1] = 2*x[1]
+			gbar[0] = x[1]**2 - 2*x[0]
+		if dgdx2 > 0.0 and dgdx2 > dgdx1:
+			A[1, 0] = 5.0
+			A[1, 1] = 2*x[1] - 2.0
+			gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		# Determine if QP subproblem is solved
-		if mu[0] > 0 and mu[1] <= 0.0 and dgdx2 <= 0.0:
-			if dgdx1 <= 0.0:
-				if mu[1] < 0.0:
-					mu[1] = 0.0
-				break
-		if mu[1] > 0 and mu[0] <= 0 and dgdx1 <= 0.0:
-			if dgdx2 <= 0.0:
-				if mu[0] < 0.0:
-					mu[0] = 0.0
-				break
+		if mu[0] > 0:
+			if mu[1] <= 0.0 or dgdx2 <= 0.0:
+				if dgdx1 <= 0.0:
+					if mu[1] < 0.0:
+						mu[1] = 0.0
+					break
+		if mu[1] > 0:
+			if mu[0] <= 0 or dgdx1 <= 0.0:
+				if dgdx2 <= 0.0:
+					if mu[0] < 0.0:
+						mu[0] = 0.0
+					break
 
 		j += 1
 
