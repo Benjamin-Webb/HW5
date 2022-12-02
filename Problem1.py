@@ -44,7 +44,7 @@ def gradLagrangian(x, mu):
 
 	return gradL
 
-def meritfun(mu, w, k):
+def meritfun(mu, ww, k):
 	# weights for merit function used in linesearch
 	# x: 2x1 vector
 	# mu: 2x1 vector containing lagrange multipliers
@@ -54,7 +54,7 @@ def meritfun(mu, w, k):
 	if k == 0:
 		w = np.abs(mu)
 	else:
-		w = np.maximum(np.abs(mu), 0.5*(w + np.abs(mu)))
+		w = np.maximum(np.abs(mu), 0.5*(ww + np.abs(mu)))
 
 	return w
 
