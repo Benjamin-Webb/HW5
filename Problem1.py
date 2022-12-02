@@ -99,8 +99,6 @@ def QP(x, mu, W, k):
 		sol = E[0]
 		sk = sol[:2]
 		mu = sol[2:4]
-		test = dg[0:1, 0:2]
-		test2 = dg[0:1, 0:2]@sk
 		dgdx1 = dg[0:1, 0:2]@sk + gbar[0]
 		dgdx2 = dg[1:2, 0:2]@sk + gbar[1]
 
@@ -129,12 +127,12 @@ def QP(x, mu, W, k):
 				gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		# Determine if QP subproblem is solved
-		if mu[0] > 0 and mu[1] <= 0.0 or dgdx2 <= 0.0:
+		if mu[0] > 0 and mu[1] <= 0.0 and dgdx2 <= 0.0:
 			if dgdx1 <= 0.0:
 				if mu[1] < 0.0:
 					mu[1] = 0.0
 				break
-		if mu[1] > 0 and mu[0] <= 0 or dgdx1 <= 0.0:
+		if mu[1] > 0 and mu[0] <= 0 and dgdx1 <= 0.0:
 			if dgdx2 <= 0.0:
 				if mu[0] < 0.0:
 					mu[0] = 0.0
@@ -247,7 +245,7 @@ if __name__ == "__main__":
 	# Do SQP loop
 	while np.linalg.norm(gradL[:, k]) > eps:
 		# Run QP
-		[sk[:, k:k+1], mu[:, k+1:k+2]] = QP(x[:, k:k+1], mu[:, k:k+1], W[:, :, k])
+		[sk[:, k:k+1], mu[:, k+1:k+2]] = QP(x[:, k:k+1], mu[:, k:k+1], W[:, :, k], k)
 
 		# Test linesearch
 		[alpha[k], ww[:, k+1:k+2]] = linesearch(x[:, k:k+1], sk[:, k:k+1], mu[:, k+1:k+2], ww[:, k:k+1], k)
