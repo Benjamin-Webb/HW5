@@ -64,20 +64,20 @@ def QP(x, mu, W, k):
 	# mu: 2x1 vector
 
 	# Formulate intial set of active constraints
-	if k == 0:
-		A = gradConstraints(x)
-		gbar = constraints(x)
-	else:
-		A = gradConstraints(x)
-		gbar = constraints(x)
-		if np.sign(mu[0]) <= 0.0:
-			A[0, 0] = 0.0
-			A[0, 1] = 0.0
-			gbar[0] = 0.0
-		if np.sign(mu[1]) <= 0.0:
-			A[1, 0] = 0.0
-			A[1, 1] = 0.0
-			gbar[1] = 0.0
+	# if k == 0:
+	# 	A = gradConstraints(x)
+	# 	gbar = constraints(x)
+	# else:
+	A = gradConstraints(x)
+	gbar = constraints(x)
+	if mu[0] <= 0.0:
+		A[0, 0] = 0.0
+		A[0, 1] = 0.0
+		gbar[0] = 0.0
+	if mu[1] <= 0.0:
+		A[1, 0] = 0.0
+		A[1, 1] = 0.0
+		gbar[1] = 0.0
 
 	# Jacobian of objective function
 	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
@@ -102,6 +102,24 @@ def QP(x, mu, W, k):
 		dgdx1 = dg[0:1, 0:2]@sk + gbar[0]
 		dgdx2 = dg[1:2, 0:2]@sk + gbar[1]
 
+		# Determine if QP subproblem is solved
+		if mu[0] > 0:
+			if dgdx1 <= 0.0:
+				if mu[1] <= 0.0 and dgdx2 <= 0.0:
+					if mu[1] < 0.0:
+						mu[1] = 0.0
+					break
+				elif mu[1] > 0 and dgdx2 <= 0.0:
+					break
+		if mu[1] > 0:
+			if dgdx2 <= 0.0:
+				if mu[0] <= 0 or dgdx1 <= 0.0:
+					if mu[0] < 0.0:
+						mu[0] = 0.0
+					break
+				elif mu[0] < 0:
+					mu[0] = 0.0
+
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
@@ -121,20 +139,6 @@ def QP(x, mu, W, k):
 			A[1, 0] = 5.0
 			A[1, 1] = 2*x[1] - 2.0
 			gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
-
-		# Determine if QP subproblem is solved
-		if mu[0] > 0:
-			if mu[1] <= 0.0 or dgdx2 <= 0.0:
-				if dgdx1 <= 0.0:
-					if mu[1] < 0.0:
-						mu[1] = 0.0
-					break
-		if mu[1] > 0:
-			if mu[0] <= 0 or dgdx1 <= 0.0:
-				if dgdx2 <= 0.0:
-					if mu[0] < 0.0:
-						mu[0] = 0.0
-					break
 
 		j += 1
 
