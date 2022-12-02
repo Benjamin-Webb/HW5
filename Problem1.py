@@ -58,25 +58,26 @@ def meritfun(mu, ww, k):
 
 	return w
 
-def QP(x, mu, W):
+def QP(x, mu, W, k):
 	# Solves QP subproblem w/ active set
 	# x: 2x1 vector
 	# mu: 2x1 vector
 
 	# Formulate intial set of active constraints
-	A = gradConstraints(x)
-	# if np.sign(mu[0]) <= 0.0:
-	# 	A[0, 0] = 0.0
-	# 	A[0, 1] = 0.0
-	# if np.sign(mu[1]) <= 0.0:
-	# 	A[1, 0] = 0.0
-	# 	A[1, 1] = 0.0
-
-	gbar = constraints(x)
-	# if np.sign(mu[0]) <= 0.0:
-	# 	gbar[0] = 0.0
-	# if np.sign(mu[1]) <= 0.0:
-	# 	gbar[1] = 0.0
+	if k == 0:
+		A = gradConstraints(x)
+		gbar = constraints(x)
+	else:
+		A = gradConstraints(x)
+		gbar = constraints(x)
+		if np.sign(mu[0]) <= 0.0:
+			A[0, 0] = 0.0
+			A[0, 1] = 0.0
+			gbar[0] = 0.0
+		if np.sign(mu[1]) <= 0.0:
+			A[1, 0] = 0.0
+			A[1, 1] = 0.0
+			gbar[1] = 0.0
 
 	# Jacobian of objective function
 	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
