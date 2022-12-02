@@ -79,7 +79,7 @@ def QP(x, mu, W):
 	# 	gbar[1] = 0.0
 
 	# Jacobian of objective function
-	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
+	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
 	# Jacobian of inequality constraints
 	dg = gradConstraints(x)
 
@@ -160,15 +160,15 @@ def linesearch(x, sk, mu, ww, k):
 		ww[:, k] = meritfun(mu, ww, k)
 
 	# Caclulate F(x+a*sk, mu)
-	fx = np.array([[2*x[0]], [2*x[1] - 6.0]], dtype=np.single)
-	fxs = fx.T @ sk.reshape((2, 1))
+	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
+	fxs = fx.T @ sk
 	g = constraints(x + alpha*sk)
 	F = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
 
 	# Calculate Phi(alpha)
 	g = constraints(x)
 	Fx = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
-	dg = np.array([[-2.0, 2*x[1]], [5.0, 2*x[1] - 2.0]], dtype=np.single) @ sk.reshape((2, 1))
+	dg = np.array([[-2.0, 2*x[1, 0]], [5.0, 2*x[1, 0] - 2.0]], dtype=np.single) @ sk
 	dgdalpha = np.maximum(np.array([[0.0], [0.0]]), dg)
 	Phi = Fx + t*alpha*(fxs + np.sum(ww * dgdalpha))
 
@@ -227,12 +227,12 @@ if __name__ == "__main__":
 
 	# Determine if any of the inequality constraints are active
 	g = np.zeros((2, 1000), np.single)
-	g[:, :1] = constraints(x[:, k])
+	g[:, :1] = constraints(x[:, :1])
 	mu = np.zeros((2, 1000), np.single)
 
 	# Calculate gradient of Lagrangian at x0
 	gradL = np.zeros((2, 1000), dtype=np.single)
-	gradL[:, :1] = gradLagrangian(x[:, k], mu[:, k])
+	gradL[:, :1] = gradLagrangian(x[:, :1], mu[:, :1])
 
 	# Initialize W
 	W = np.zeros((2, 2, 1000), dtype=np.single)
@@ -245,17 +245,17 @@ if __name__ == "__main__":
 	# Do SQP loop
 	while np.linalg.norm(gradL[:, k]) > eps:
 		# Run QP
-		[sk[:, k], mu[:, k+1]] = QP(x[:, k], mu[:, k], W[:, :, k])
+		[sk[:, k:k+1], mu[:, k+1:k+2]] = QP(x[:, k:k+1], mu[:, k:k+1], W[:, :, k])
 
 		# Test linesearch
-		alpha[k] = linesearch(x[:, k], sk[:, k], mu[:, k+1], ww[:, k], k)
+		alpha[k] = linesearch(x[:, k:k+1], sk[:, k:k+1], mu[:, k+1:k+2], ww[:, k:k+1], k)
 
 		# Update solution
-		x[:, k+1] = x[:, k] + alpha[k]*sk[:, k]
+		x[:, k+1:k+2] = x[:, k:k+1] + alpha[k]*sk[:, k:k+1]
 
 		# Update Hessian approximation
-		W[:, :, k+1] = BFGS(W[:, :, k], alpha[k]*sk[:, k], x, mu[:, k+1], k)
+		W[:, :, k+1] = BFGS(W[:, :, k], alpha[k]*sk[:, k:k+1], x, mu[:, k+1:k+2], k)
 
 		# Update gradient of Lagrangian
-		gradL[:, k+1] = gradLagrangian(x[:, k], mu[:, k+1])
+		gradL[:, k+1:k+2] = gradLagrangian(x[:, k+1:k+2], mu[:, k+1:k+2])
 		k += 1
