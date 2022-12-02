@@ -54,7 +54,7 @@ def meritfun(mu, w, k):
 	if k == 0:
 		w = np.abs(mu)
 	else:
-		w[:, 2] = np.maximum(np.abs(mu), 0.5*(w[:, 0] + np.abs(mu)))
+		w = np.maximum(np.abs(mu), 0.5*(w + np.abs(mu)))
 
 	return w
 
@@ -98,8 +98,10 @@ def QP(x, mu, W):
 		sol = E[0]
 		sk = sol[:2]
 		mu = sol[2:4]
-		dgdx1 = dg[0, 0:2]@sk + gbar[0]
-		dgdx2 = dg[1, 0:2]@sk + gbar[1]
+		test = dg[0:1, 0:2]
+		test2 = dg[0:1, 0:2]@sk
+		dgdx1 = dg[0:1, 0:2]@sk + gbar[0]
+		dgdx2 = dg[1:2, 0:2]@sk + gbar[1]
 
 		# Update active constraints
 		# A = gradConstraints(x)
@@ -115,24 +117,24 @@ def QP(x, mu, W):
 				A[1, 1] = 0.0
 				gbar[1] = 0.0
 		if mu[0] > 0.0 and mu[0] >= mu[1]:
-			if dgdx1.max() > 0.0:
+			if dgdx1 > 0.0:
 				A[0, 0] = -2.0
 				A[0, 1] = 2*x[1]
 				gbar[0] = x[1]**2 - 2*x[0]
 		if mu[1] > 0.0 and mu[1] > mu[0]:
-			if dgdx2.max() > 0.0:
+			if dgdx2 > 0.0:
 				A[1, 0] = 5.0
 				A[1, 1] = 2*x[1] - 2.0
 				gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		# Determine if QP subproblem is solved
-		if mu[0] > 0 and mu[1] <= 0.0 or dgdx2.max() <= 0.0:
-			if dgdx1.max() <= 0.0:
+		if mu[0] > 0 and mu[1] <= 0.0 or dgdx2 <= 0.0:
+			if dgdx1 <= 0.0:
 				if mu[1] < 0.0:
 					mu[1] = 0.0
 				break
-		if mu[1] > 0 and mu[0] <= 0 or dgdx1.max() <= 0.0:
-			if dgdx2.max() <= 0.0:
+		if mu[1] > 0 and mu[0] <= 0 or dgdx1 <= 0.0:
+			if dgdx2 <= 0.0:
 				if mu[0] < 0.0:
 					mu[0] = 0.0
 				break
@@ -157,7 +159,7 @@ def linesearch(x, sk, mu, ww, k):
 	if k == 0:
 		ww = meritfun(mu, ww, k)
 	else:
-		ww[:, k] = meritfun(mu, ww, k)
+		ww = meritfun(mu, ww, k)
 
 	# Caclulate F(x+a*sk, mu)
 	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
@@ -167,7 +169,8 @@ def linesearch(x, sk, mu, ww, k):
 
 	# Calculate Phi(alpha)
 	g = constraints(x)
-	Fx = fxs + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
+	fphi = objfun(x)
+	Fx = fphi + np.sum(ww * np.maximum(np.array([[0.0], [0.0]]), g))
 	dg = np.array([[-2.0, 2*x[1, 0]], [5.0, 2*x[1, 0] - 2.0]], dtype=np.single) @ sk
 	dgdalpha = np.maximum(np.array([[0.0], [0.0]]), dg)
 	Phi = Fx + t*alpha*(fxs + np.sum(ww * dgdalpha))
@@ -182,7 +185,7 @@ def linesearch(x, sk, mu, ww, k):
 		# Calculate Phi(alpha)
 		Phi = Fx + t * alpha * (fxs + np.sum(ww * dgdalpha))
 
-	return alpha
+	return alpha, ww
 
 def BFGS(W, alphask, x, mu, k):
 	# Function performs BFGS for given optimization problem
@@ -193,22 +196,20 @@ def BFGS(W, alphask, x, mu, k):
 	# k: integer for current iteration
 
 	# Determine theta at current iteration
-	dLk1 = gradLagrangian(x[:, k+1], mu)
-	dLk0 = gradLagrangian(x[:, k], mu)
+	dLk1 = gradLagrangian(x[:, k+1:k+2], mu)
+	dLk0 = gradLagrangian(x[:, k:k+1], mu)
 
-	if alphask.reshape((2, 1)).T @ (dLk1 - dLk0) >= 0.2:
+	if alphask.T @ (dLk1 - dLk0) >= 0.2:
 		theta = np.single(1)
 	else:
-		theta = (0.8 * alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))) /\
-		        ((alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))) -
-		         (alphask.reshape((2, 1)).T @ (dLk1 - dLk0)))
+		theta = (0.8 * alphask.T @ W @ alphask) / ((alphask.T @ W @ alphask) -
+		                                           (alphask.T @ (dLk1 - dLk0)))
 
 	# Calculate y for BFGS
-	y = theta*(dLk1 - dLk0) + (1 - theta)*W@alphask.reshape((2, 1))
+	y = theta*(dLk1 - dLk0) + (1 - theta)*W@alphask
 
 	# Update Hessian approximation
-	H = W + (y@y.T) - ((W @ alphask.reshape((2, 1)) @ alphask.reshape((2, 1)).T @ W) /
-	                   (alphask.reshape((2, 1)).T @ W @ alphask.reshape((2, 1))))
+	H = W + (y@y.T) - ((W @ alphask @ alphask.T @ W) / (alphask.T @ W @ alphask))
 
 	return H
 
@@ -248,7 +249,7 @@ if __name__ == "__main__":
 		[sk[:, k:k+1], mu[:, k+1:k+2]] = QP(x[:, k:k+1], mu[:, k:k+1], W[:, :, k])
 
 		# Test linesearch
-		alpha[k] = linesearch(x[:, k:k+1], sk[:, k:k+1], mu[:, k+1:k+2], ww[:, k:k+1], k)
+		[alpha[k], ww[:, k+1:k+2]] = linesearch(x[:, k:k+1], sk[:, k:k+1], mu[:, k+1:k+2], ww[:, k:k+1], k)
 
 		# Update solution
 		x[:, k+1:k+2] = x[:, k:k+1] + alpha[k]*sk[:, k:k+1]
