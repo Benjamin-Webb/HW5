@@ -217,6 +217,7 @@ if __name__ == "__main__":
 
 	# Iteration counter
 	k = np.uint16(0)
+	eps = 0.001
 
 	# Initial solution guess and step size
 	alpha = np.zeros((1000, 1), dtype=np.single)
@@ -238,17 +239,23 @@ if __name__ == "__main__":
 	W[0, 0, 0] = 1.0
 	W[1, 1, 0] = 1.0
 
-	# Run QP
-	[sk[:, :1], mu[:, :1]] = QP(x[:, k], mu[:, k], W[:, :, k])
-
 	# Initialize array of weights to be used in linesearch
 	ww = np.zeros((2, 1000), dtype=np.single)
 
-	# Test linesearch
-	alpha[0] = linesearch(x[:, k], sk[:, k], mu[:, k], ww[:, k], k)
+	# Do SQP loop
+	while np.linalg.norm(gradL[:, k]) > eps:
+		# Run QP
+		[sk[:, k], mu[:, k+1]] = QP(x[:, k], mu[:, k], W[:, :, k])
 
-	# Update solution
-	x[:, 1:2] = x[:, :1] + alpha[0]*sk[:, :1]
+		# Test linesearch
+		alpha[k] = linesearch(x[:, k], sk[:, k], mu[:, k+1], ww[:, k], k)
 
-	# Update Hessian approximation
-	W[:, :, k+1] = BFGS(W[:, :, k], alpha[k]*sk[:, k], x, mu[:, k], k)
+		# Update solution
+		x[:, k+1] = x[:, k] + alpha[k]*sk[:, k]
+
+		# Update Hessian approximation
+		W[:, :, k+1] = BFGS(W[:, :, k], alpha[k]*sk[:, k], x, mu[:, k+1], k)
+
+		# Update gradient of Lagrangian
+		gradL[:, k+1] = gradLagrangian(x[:, k], mu[:, k+1])
+		k += 1
