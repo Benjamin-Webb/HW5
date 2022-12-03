@@ -105,19 +105,15 @@ def QP(x, mu, W, k):
 
 		# Determine if QP subproblem is solved
 		if mu[0] > 0:
-			if dgdx1 <= eps.eps:
+			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
 				if mu[1] <= 0.0:
 					mu[1] = 0.0
-					break
-				elif mu[1] > 0 and dgdx2 <= eps.eps:
-					break
+				break
 		if mu[1] > 0:
-			if dgdx2 <= eps.eps:
+			if dgdx2 <= eps.eps and dgdx1 <= eps.eps:
 				if mu[0] <= eps.eps:
 					mu[0] = 0.0
-					break
-				elif mu[0] > 0 and dgdx1 <= eps.eps:
-					break
+				break
 		if mu[0] <= eps.eps and mu[1] <= eps.eps:
 			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
 				mu[0] = 0.0
