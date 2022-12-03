@@ -73,11 +73,11 @@ def QP(x, mu, W, k):
 	if mu[0] <= 0.0:
 		A[0, 0] = 0.0
 		A[0, 1] = 0.0
-		gbar[0] = 0.0
+		#gbar[0] = 0.0
 	if mu[1] <= 0.0:
 		A[1, 0] = 0.0
 		A[1, 1] = 0.0
-		gbar[1] = 0.0
+		#gbar[1] = 0.0
 
 	# Jacobian of objective function
 	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
@@ -85,6 +85,7 @@ def QP(x, mu, W, k):
 	dg = gradConstraints(x)
 
 	# Initial step size
+	eps = np.finfo(np.float32)
 	sk = np.zeros((2, 1), dtype=np.single)
 	j = np.uint16(0)
 
@@ -104,48 +105,51 @@ def QP(x, mu, W, k):
 
 		# Determine if QP subproblem is solved
 		if mu[0] > 0:
-			if dgdx1 <= 0.0:
+			if dgdx1 <= eps:
 				if mu[1] <= 0.0:
-					if mu[1] < 0.0:
-						mu[1] = 0.0
+					mu[1] = 0.0
 					break
-				elif mu[1] > 0 and dgdx2 <= 0.0:
+				elif mu[1] > 0 and dgdx2 <= eps:
 					break
 		if mu[1] > 0:
-			if dgdx2 <= 0.0:
-				if mu[0] <= 0:
-					if mu[0] < 0.0:
-						mu[0] = 0.0
-					break
-				elif mu[0] < 0:
+			if dgdx2 <= eps:
+				if mu[0] <= eps:
 					mu[0] = 0.0
+					break
+				elif mu[0] > 0 and dgdx1 <= eps:
+					break
+		if mu[0] <= eps and mu[1] <= eps:
+			if dgdx1 <= eps and dgdx2 <= eps:
+				mu[0] = 0.0
+				mu[1] = 0.0
+				break
 
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
-		if mu[0] <= 0.0 and mu[0] < mu[1]:
+		if mu[0] <= eps and mu[0] < mu[1]:
 			A[0, 0] = 0.0
 			A[0, 1] = 0.0
-			gbar[0] = 0.0
+			#gbar[0] = 0.0
 		elif dgdx1 > 0.0 and dgdx1 > dgdx2:
 			A[0, 0] = -2.0
 			A[0, 1] = 2*x[1]
-			gbar[0] = x[1]**2 - 2*x[0]
-		if mu[1] <= 0.0 and mu[1] < mu[0]:
+			#gbar[0] = x[1]**2 - 2*x[0]
+		if mu[1] <= eps and mu[1] < mu[0]:
 			A[1, 0] = 0.0
 			A[1, 1] = 0.0
-			gbar[1] = 0.0
+			#gbar[1] = 0.0
 		elif dgdx2 > 0.0 and dgdx2 > dgdx1:
 			A[1, 0] = 5.0
 			A[1, 1] = 2*x[1] - 2.0
-			gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
+			#gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		j += 1
 
-	if mu[0] < 0.0:
-		mu[0] = 0.0
-	if mu[1] < 0.0:
-		mu[1] = 0.0
+	# if mu[0] < 0.0:
+	# 	mu[0] = 0.0
+	# if mu[1] < 0.0:
+	# 	mu[1] = 0.0
 
 	return sk, mu
 
