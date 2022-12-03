@@ -123,7 +123,7 @@ def QP(x, mu, W, k):
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
-		if mu[0] <= 0.0 and mu[0] <= mu[1]:
+		if mu[0] <= 0.0 and mu[0] < mu[1]:
 			A[0, 0] = 0.0
 			A[0, 1] = 0.0
 			gbar[0] = 0.0
@@ -141,6 +141,11 @@ def QP(x, mu, W, k):
 			gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		j += 1
+
+	if mu[0] < 0.0:
+		mu[0] = 0.0
+	if mu[1] < 0.0:
+		mu[1] = 0.0
 
 	return sk, mu
 
@@ -185,6 +190,9 @@ def linesearch(x, sk, mu, ww, k):
 
 		# Calculate Phi(alpha)
 		Phi = Fx + t * alpha * (fxs + np.sum(ww * dgdalpha))
+
+		if alpha < 0.00001:
+			break
 
 	return alpha, ww
 
@@ -245,7 +253,8 @@ if __name__ == "__main__":
 	ww = np.zeros((2, 1000), dtype=np.single)
 
 	# Do SQP loop
-	while np.linalg.norm(gradL[:, k]) > eps:
+	res = np.single(1)
+	while res > eps:
 		# Run QP
 		[sk[:, k:k+1], mu[:, k+1:k+2]] = QP(x[:, k:k+1], mu[:, k:k+1], W[:, :, k], k)
 
@@ -262,4 +271,4 @@ if __name__ == "__main__":
 		gradL[:, k+1:k+2] = gradLagrangian(x[:, k+1:k+2], mu[:, k+1:k+2])
 		k += 1
 
-		test = np.linalg.norm(gradL[:, k])
+		res = np.linalg.norm(gradL[:, k] - gradL[:, k-1])
