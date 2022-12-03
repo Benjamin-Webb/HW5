@@ -105,21 +105,21 @@ def QP(x, mu, W, k):
 
 		# Determine if QP subproblem is solved
 		if mu[0] > 0:
-			if dgdx1 <= eps:
+			if dgdx1 <= eps.eps:
 				if mu[1] <= 0.0:
 					mu[1] = 0.0
 					break
-				elif mu[1] > 0 and dgdx2 <= eps:
+				elif mu[1] > 0 and dgdx2 <= eps.eps:
 					break
 		if mu[1] > 0:
-			if dgdx2 <= eps:
-				if mu[0] <= eps:
+			if dgdx2 <= eps.eps:
+				if mu[0] <= eps.eps:
 					mu[0] = 0.0
 					break
-				elif mu[0] > 0 and dgdx1 <= eps:
+				elif mu[0] > 0 and dgdx1 <= eps.eps:
 					break
-		if mu[0] <= eps and mu[1] <= eps:
-			if dgdx1 <= eps and dgdx2 <= eps:
+		if mu[0] <= eps.eps and mu[1] <= eps.eps:
+			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
 				mu[0] = 0.0
 				mu[1] = 0.0
 				break
@@ -127,7 +127,7 @@ def QP(x, mu, W, k):
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
-		if mu[0] <= eps and mu[0] < mu[1]:
+		if mu[0] <= eps.eps and mu[0] < mu[1]:
 			A[0, 0] = 0.0
 			A[0, 1] = 0.0
 			#gbar[0] = 0.0
@@ -135,7 +135,7 @@ def QP(x, mu, W, k):
 			A[0, 0] = -2.0
 			A[0, 1] = 2*x[1]
 			#gbar[0] = x[1]**2 - 2*x[0]
-		if mu[1] <= eps and mu[1] < mu[0]:
+		if mu[1] <= eps.eps and mu[1] < mu[0]:
 			A[1, 0] = 0.0
 			A[1, 1] = 0.0
 			#gbar[1] = 0.0
