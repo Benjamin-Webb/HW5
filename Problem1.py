@@ -73,11 +73,11 @@ def QP(x, mu, W, k):
 	if mu[0] <= 0.0:
 		A[0, 0] = 0.0
 		A[0, 1] = 0.0
-		gbar[0] = 0.0
+		#gbar[0] = 0.0
 	if mu[1] <= 0.0:
 		A[1, 0] = 0.0
 		A[1, 1] = 0.0
-		gbar[1] = 0.0
+		#gbar[1] = 0.0
 
 	# Jacobian of objective function
 	fx = np.array([[2*x[0, 0]], [2*x[1, 0] - 6.0]], dtype=np.single)
@@ -100,20 +100,24 @@ def QP(x, mu, W, k):
 		sol = E[0]
 		sk = sol[:2]
 		mu = sol[2:4]
+		test1 = dg[0:1, 0:2]
+		test2 = dg[0:1, 0:2]@sk
+		test3 = dg[1:2, 0:2]
+		test4 = dg[1:2, 0:2]@sk
 		dgdx1 = dg[0:1, 0:2]@sk + gbar[0]
 		dgdx2 = dg[1:2, 0:2]@sk + gbar[1]
 
 		# Determine if QP subproblem is solved
 		if mu[0] > 0:
-			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
-				if mu[1] <= 0.0:
+			if dgdx1 <= eps.eps:
+				if mu[1] <= eps.eps or dgdx2 <= eps.eps:
 					mu[1] = 0.0
-				break
+					break
 		if mu[1] > 0:
-			if dgdx2 <= eps.eps and dgdx1 <= eps.eps:
-				if mu[0] <= eps.eps:
+			if dgdx2 <= eps.eps:
+				if mu[0] <= eps.eps or dgdx1 <= eps.eps:
 					mu[0] = 0.0
-				break
+					break
 		if mu[0] <= eps.eps and mu[1] <= eps.eps:
 			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
 				mu[0] = 0.0
@@ -123,23 +127,42 @@ def QP(x, mu, W, k):
 		# Update active constraints
 		# A = gradConstraints(x)
 		# gbar = constraints(x)
-
-		if dgdx1 > 0.0 and dgdx1 > dgdx2:
-			A[0, 0] = -2.0
-			A[0, 1] = 2*x[1]
-			gbar[0] = x[1]**2 - 2*x[0]
-		elif mu[0] <= eps.eps and mu[0] < mu[1]:
-			A[0, 0] = 0.0
-			A[0, 1] = 0.0
-			gbar[0] = 0.0
-		if dgdx2 > 0.0 and dgdx2 > dgdx1:
-			A[1, 0] = 5.0
-			A[1, 1] = 2*x[1] - 2.0
-			gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
-		elif mu[1] <= eps.eps and mu[1] < mu[0]:
-			A[1, 0] = 0.0
-			A[1, 1] = 0.0
-			gbar[1] = 0.0
+		if A[0, 0] > 0.0:
+			if mu[0] <= eps.eps and mu[0] < mu[1]:
+				A[0, 0] = 0.0
+				A[0, 1] = 0.0
+				#gbar[0] = 0.0
+			elif mu[0] <= eps.eps and A[1, 0] == 0.0:
+				A[0, 0] = 0.0
+				A[0, 1] = 0.0
+				#gbar[0] = 0.0
+		if A[1, 0] > 0.0:
+			if mu[1] <= eps.eps and mu[1] < mu[0]:
+				A[1, 0] = 0.0
+				A[1, 1] = 0.0
+				#gbar[1] = 0.0
+			elif mu[1] <= eps.eps and A[0, 0] == 0.0:
+				A[1, 0] = 0.0
+				A[1, 1] = 0.0
+				#gbar[1] = 0.0
+		if A[0, 0] == 0.0:
+			if dgdx1 > 0.0 and dgdx1 > dgdx2:
+				A[0, 0] = -2.0
+				A[0, 1] = 2 * x[1]
+				#gbar[0] = x[1]**2 - 2*x[0]
+			elif dgdx1 > 0.0 and A[1, 0] > 0.0:
+				A[0, 0] = -2.0
+				A[0, 1] = 2 * x[1]
+				#gbar[0] = x[1]**2 - 2*x[0]
+		if A[1, 0] == 0.0:
+			if dgdx2 > 0.0 and dgdx2 > dgdx1:
+				A[1, 0] = 5.0
+				A[1, 1] = 2*x[1] - 2.0
+				#gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
+			elif dgdx2 > 0.0 and A[0, 0] > 0.0:
+				A[1, 0] = 5.0
+				A[1, 1] = 2*x[1] - 2.0
+				#gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		j += 1
 
