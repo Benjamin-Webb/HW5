@@ -300,3 +300,8 @@ if __name__ == "__main__":
 		k += 1
 
 		res = np.linalg.norm((gradL[:, k] - gradL[:, k-1])/gradL[:, k-1])
+
+		if k == 998:
+			break
+
+	test = x[:, k:k+1]
