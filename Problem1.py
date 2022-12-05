@@ -292,4 +292,7 @@ if __name__ == "__main__":
 
 		res = np.linalg.norm((gradL[:, k] - gradL[:, k-1])/gradL[:, k-1])
 
-	test = x[:, k:k+1]
+	print('Solution:')
+	print(' ')
+	print('x1 =', x[0, k])
+	print('x2 =', x[1, k])
