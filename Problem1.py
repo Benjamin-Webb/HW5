@@ -65,20 +65,14 @@ def QP(x, mu, W, k):
 	# mu: 2x1 vector
 
 	# Formulate intial set of active constraints
-	# if k == 0:
-	# 	A = gradConstraints(x)
-	# 	gbar = constraints(x)
-	# else:
 	A = gradConstraints(x)
 	gbar = constraints(x)
 	if mu[0] <= 0.0:
 		A[0, 0] = 0.0
 		A[0, 1] = 0.0
-		#gbar[0] = 0.0
 	if mu[1] <= 0.0:
 		A[1, 0] = 0.0
 		A[1, 1] = 0.0
-		#gbar[1] = 0.0
 
 	Atemp = copy.deepcopy(A)
 
@@ -91,8 +85,9 @@ def QP(x, mu, W, k):
 	eps = np.finfo(np.float32)
 	sk = np.zeros((2, 1), dtype=np.single)
 	j = np.uint16(0)
+	flag = np.uint8(0)
 
-	while j < 100:
+	while j < 10:
 		C = np.vstack((np.hstack((W, A.T)), np.hstack((A, np.zeros((2, 2), dtype=np.single)))))
 		D = np.vstack((-fx, -gbar))
 
@@ -107,6 +102,17 @@ def QP(x, mu, W, k):
 		dgdx2 = dg[1:2, 0:2]@sk + gbar[1]
 
 		# Determine if QP subproblem is solved
+		if flag >= 4:
+			if mu[0] > 0.0 and mu[1] <= eps.eps:
+				mu[1] = 0.0
+				break
+			elif mu[1] > 0.0 and mu[0] <= eps.eps:
+				mu[0] = 0.0
+				break
+			elif mu[0] <= eps.eps and mu[1] <= eps.eps:
+				mu[0] = 0.0
+				mu[1] = 0.0
+				break
 		if mu[0] > 0 and mu[1] > 0:
 			if dgdx1 <= eps.eps and dgdx2 <= eps.eps:
 				break
@@ -127,53 +133,38 @@ def QP(x, mu, W, k):
 				break
 
 		# Update active constraints
-		# A = gradConstraints(x)
-		# gbar = constraints(x)
 		if Atemp[0, 0] != 0.0:
 			if mu[0] <= eps.eps and mu[0] < mu[1]:
 				A[0, 0] = 0.0
 				A[0, 1] = 0.0
-				#gbar[0] = 0.0
 			elif mu[0] <= eps.eps and Atemp[1, 0] == 0.0:
 				A[0, 0] = 0.0
 				A[0, 1] = 0.0
-				#gbar[0] = 0.0
 		if Atemp[1, 0] != 0.0:
 			if mu[1] <= eps.eps and mu[1] < mu[0]:
 				A[1, 0] = 0.0
 				A[1, 1] = 0.0
-				#gbar[1] = 0.0
 			elif mu[1] <= eps.eps and Atemp[0, 0] == 0.0:
 				A[1, 0] = 0.0
 				A[1, 1] = 0.0
-				#gbar[1] = 0.0
 		if Atemp[0, 0] == 0.0:
 			if dgdx1 > 0.0 and dgdx1 > dgdx2:
 				A[0, 0] = -2.0
 				A[0, 1] = 2 * x[1]
-				#gbar[0] = x[1]**2 - 2*x[0]
 			elif dgdx1 > 0.0 and Atemp[1, 0] > 0.0:
 				A[0, 0] = -2.0
 				A[0, 1] = 2 * x[1]
-				#gbar[0] = x[1]**2 - 2*x[0]
 		if Atemp[1, 0] == 0.0:
 			if dgdx2 > 0.0 and dgdx2 > dgdx1:
 				A[1, 0] = 5.0
 				A[1, 1] = 2*x[1] - 2.0
-				#gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 			elif dgdx2 > 0.0 and Atemp[0, 0] > 0.0:
 				A[1, 0] = 5.0
 				A[1, 1] = 2*x[1] - 2.0
-				#gbar[1] = (x[1] - 1.0)**2 + 5*x[0] - 15.0
 
 		Atemp = copy.deepcopy(A)
-
+		flag += 1
 		j += 1
-
-	# if mu[0] < 0.0:
-	# 	mu[0] = 0.0
-	# if mu[1] < 0.0:
-	# 	mu[1] = 0.0
 
 	return sk, mu
 
@@ -300,8 +291,5 @@ if __name__ == "__main__":
 		k += 1
 
 		res = np.linalg.norm((gradL[:, k] - gradL[:, k-1])/gradL[:, k-1])
-
-		if k == 998:
-			break
 
 	test = x[:, k:k+1]
